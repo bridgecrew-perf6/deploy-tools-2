@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"go.uber.org/zap"
 	"io"
 	"os"
@@ -27,22 +26,12 @@ func ConverseStd(std io.ReadCloser) (stdStr string) {
 	// 读取管道中的内容
 	result, err := io.ReadAll(std)
 	if err != nil {
-		zap.S().Fatal(err)
+		Fatalf(err.Error())
 	}
-	return string(result)
-}
-
-// ReadPipeOutFile 持续读区取管道中的数据并输出到日志文件中
-func ReadPipeOutFile(std io.ReadCloser) {
-	for {
-		if std == nil {
-			continue
-		}
-		in := bufio.NewScanner(std)
-		for in.Scan() {
-			ZapFileLogger.Infow(string(in.Bytes()))
-		}
+	if string(result) == "" {
+		return ""
 	}
+	return "CMD：" + string(result)
 }
 
 // KillPidFile 结束 .pid 记录的进程
@@ -93,4 +82,16 @@ func GetPidByProcessName(name string) []string {
 	pidCmd.Wait()
 	list := strings.Split(text, " ")
 	return list
+}
+
+// ArgsHasSuffixAndDelete 获取 os.Args 中的指定值并删除
+func ArgsHasSuffixAndDelete(value string) string {
+	for index, param := range os.Args {
+		// 如果传入了 .sh 文件则使用脚本部署 忽略设置的语言
+		if strings.HasSuffix(param, value) {
+			os.Args = append(os.Args[0:index], os.Args[index+1:]...)
+			return param
+		}
+	}
+	return ""
 }

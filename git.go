@@ -18,7 +18,7 @@ func GitCommitWatcher() {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		zap.S().Fatal(err)
+		Fatalf(err.Error())
 	}
 	defer watcher.Close()
 
@@ -46,7 +46,7 @@ func GitCommitWatcher() {
 
 	err = watcher.Add(headPath)
 	if err != nil {
-		zap.S().Fatal(err)
+		Fatalf(err.Error())
 	}
 	<-done
 }
@@ -67,14 +67,14 @@ func GitPull() {
 	stdout, stdoutErr := cmd.StdoutPipe()
 	stderr, stderrErr := cmd.StderrPipe()
 	if stdoutErr != nil {
-		zap.S().Fatal("stdoutErr", stdoutErr)
+		Fatalf("stdoutErr:%s", stdoutErr)
 	}
 	if stderrErr != nil {
-		zap.S().Fatal("stderrErr", stderrErr)
+		Fatalf("stderrErr:%s", stderrErr)
 	}
 
 	if err := cmd.Start(); err != nil { // 执行命令
-		zap.S().Fatal(err)
+		Fatalf(err.Error())
 	}
 	// 读取管道中的内容
 	if str := ConverseStd(stdout); str != "" {
@@ -98,18 +98,17 @@ func CheckBranch(branch string) {
 	stdout, stdoutErr := branchCmd.StdoutPipe()
 	stderr, stderrErr := branchCmd.StderrPipe()
 	if stdoutErr != nil {
-		zap.S().Fatal("stdoutErr", stdoutErr)
+		Fatalf("stdoutErr:%s", stdoutErr)
 	}
 	if stderrErr != nil {
-		zap.S().Fatal("stderrErr", stderrErr)
+		Fatalf("stderrErr:%s", stderrErr)
 	}
 	if err := branchCmd.Start(); err != nil { // 执行命令并等待命令执行完毕
-		zap.S().Fatal()
-		zap.S().Fatal(err)
+		Fatalf("git:切换分支失败 Err:%s", err)
 	}
 	zap.S().Infow(ConverseStd(stdout))
 	if er := ConverseStd(stderr); strings.Contains(er, "error") {
-		zap.S().Fatal("ERROR --- 切换分支错误：", er)
+		Fatalf("ERROR --- 切换分支错误：:%s", er)
 	}
 	branchCmd.Wait()
 	zap.S().Infof("切换 %s 分支成功！\n", branch)
@@ -121,7 +120,7 @@ func BranchName() string {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		zap.S().Fatal("ERROR --- 获取当前分支失败：", err)
+		Fatalf("ERROR --- 获取当前分支失败：", err)
 	}
 	cmd.Start()
 	name := ConverseStd(stdout)

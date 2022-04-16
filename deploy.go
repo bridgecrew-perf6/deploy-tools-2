@@ -23,7 +23,11 @@ func DeployProject() {
 			case "npm":
 			case "yarn":
 			default:
-				zap.S().Fatalf("暂时不支持 %s 项目，请使用 Shell 启动项目！", Args.Language)
+				if Args.Language == "" {
+					Fatalf("未指定 Shell 脚本或部署工具！")
+				} else {
+					Fatalf("暂时不支持 %s 工具部署，请使用 Shell 脚本启动项目！", Args.Language)
+				}
 			}
 		}
 	}
@@ -31,7 +35,27 @@ func DeployProject() {
 }
 
 func ScriptDeploy() {
+	// 判断脚本文件事否存在
+	if exists := FileExists(Args.ScriptPath); !exists {
+		Fatalf("%s 脚本文件不存在", Args.ScriptPath)
+	}
 	zap.S().Infof("使用 %s 脚本部署项目 \n", Args.ScriptPath)
+	cmd := exec.Command("bash", Args.ScriptPath)
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+	if err := cmd.Start(); err != nil {
+		Fatalf("ERROR --- Bash: 执行命令失败：%s", err)
+	}
+	cmd.Start()
+	if str := ConverseStd(stdout); str != "" {
+		zap.S().Infow(str)
+	}
+	if str := ConverseStd(stderr); str != "" {
+		zap.S().Infow(str)
+	}
+	cmd.Wait()
+	zap.S().Infof("Bash: %s 脚本全部执行完成 \n", Args.ProjectName)
+
 }
 
 func MavenDeploy() {
@@ -53,11 +77,15 @@ func GoDeploy() {
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 	if err := cmd.Start(); err != nil {
-		zap.S().Fatal("ERROR --- Go Build:执行命令失败：", err)
+		Fatalf("ERROR --- Go Build:执行命令失败：%s", err)
 	}
 	cmd.Start()
-	fmt.Println(ConverseStd(stdout))
-	fmt.Println(ConverseStd(stderr))
+	if str := ConverseStd(stdout); str != "" {
+		zap.S().Infow(str)
+	}
+	if str := ConverseStd(stderr); str != "" {
+		zap.S().Infow(str)
+	}
 	cmd.Wait()
 	zap.S().Infof("Go: %s 编译成功 \n", Args.ProjectName)
 
@@ -73,7 +101,7 @@ func GoDeploy() {
 	nphub := fmt.Sprintf("nohup ./%s > logs/%s-%d.log 2>&1 & echo $! > %s", Args.ProjectName, Args.ProjectName, time.Now().Unix(), PID_FILE)
 	startCmd := exec.Command("/bin/bash", "-c", nphub)
 	if err := startCmd.Start(); err != nil {
-		zap.S().Fatalf("ERROR --- 启动 %s 失败，Error：%s \n", Args.ProjectName, err)
+		Fatalf("ERROR --- 启动 %s 失败，Error：%s \n", Args.ProjectName, err)
 	}
 	zap.S().Infof("Go: %s 项目启动成功! \n", Args.ProjectName)
 	startCmd.Wait()
