@@ -31,7 +31,6 @@ func Init() {
 	CheckBranch(Args.Branch)
 	// 监听项目部署
 	go DeployProject()
-
 	// 如果设置启动部署程序则 拉取最新代码后直接部署
 	if Args.Start {
 		// 自动拉取代码
@@ -59,13 +58,9 @@ func ParseCommandVar() {
 			if sh != "" {
 				param = append(param, sh)
 			}
-			// 执行命令并将整理好的参数重新传递过去
-			cmd := exec.Command(os.Args[0], param[1:]...)
-			if err := cmd.Start(); err != nil {
-				fmt.Printf("start %s failed, error: %v\n", os.Args[0], err)
-				os.Exit(1)
-			}
-			fmt.Printf("%s The background to start \n [PID] %d running...\n", os.Args[0], cmd.Process.Pid)
+			pid := BackgroundRun(param)
+			fmt.Printf("%s 部署工具静默启动 \n [PID] %d running...\n", os.Args[0], pid)
+			fmt.Printf("启动日志请查看日志文件！\n")
 			os.Exit(0)
 		}
 	}
@@ -78,11 +73,13 @@ func ParseCommandVar() {
 	flag.StringVar(&Args.Language, "language", "", "项目部署工具 目前支持 [go|maven|yarn|npm]")
 	flag.StringVar(&Args.LogDir, "log-dir", "logs", "日志存放目录 默认在项目根目录下的 logs")
 	flag.BoolVar(&Args.FileLog, "file-log", false, "将本程序运行日志保存在日志文件中")
-	flag.StringVar(&Args.ProjectName, "name", "", "项目名称 默认为当前程序运行目录名称")
 	flag.StringVar(&Args.Dir, "dir", "", "监听目录变动，文件发生变动时执行部署脚本")
 	flag.BoolVar(&Args.Help, "help", false, "查看帮助")
 	flag.BoolVar(&Args.Help, "h", false, "查看帮助")
 	flag.BoolVar(&Args.Background, "d", false, "后台启动")
+	flag.StringVar(&Args.ProjectDir, "project-dir", "", "如果 git 仓库中存在多个项目则需指定项目目录,默认当前目录")
+
+	flag.StringVar(&Args.ProjectName, "name", "", "项目名称 默认为当前程序运行目录名称")
 
 	// 如果传递了脚本文件
 	if sh != "" {
@@ -112,6 +109,11 @@ func ParseCommandVar() {
 		InitLogger()
 	}
 
+	// 设置 .pid 文件路径
+	if Args.LogDir != "" {
+		PID_FILE = Args.LogDir + "/" + ".pid"
+	}
+
 	if len(flag.Args()) > 0 {
 		zap.S().Warnw("未解析参数", flag.Args())
 	}
@@ -122,10 +124,6 @@ func ParseCommandVar() {
 	}
 }
 
-func Fatalf(msg string, args ...interface{}) {
-	zap.S().Fatalf(msg+"\n --- 程序异常结束 ---", args...)
-}
-
 // InitLogger 初始化日志组件
 func InitLogger() {
 	logger, err := zap.NewDevelopment()
@@ -134,8 +132,6 @@ func InitLogger() {
 	}
 	// 替换全局 Logger
 	zap.ReplaceGlobals(logger)
-	// 将项目部署的日志写入日志文件中
-	//ZapSugarFile(fmt.Sprintf("%s/%s.log", Args.LogDir, Args.ProjectName))
 }
 
 // InitFileLogger 生成输出到文件的 Logger
@@ -165,4 +161,15 @@ func InitFileLogger(logDir string) {
 	// zap.AddCaller()  添加将调用函数信息记录到日志中的功能。
 	logger := zap.New(core, zap.AddCaller())
 	zap.ReplaceGlobals(logger)
+}
+
+// BackgroundRun 后台启动
+func BackgroundRun(param []string) int {
+	// 执行命令并将整理好的参数重新传递过去
+	cmd := exec.Command(os.Args[0], param[1:]...)
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("start %s failed, error: %v\n", os.Args[0], err)
+		os.Exit(1)
+	}
+	return cmd.Process.Pid
 }

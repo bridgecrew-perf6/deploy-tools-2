@@ -1,7 +1,16 @@
 package main
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestGetPidByProcessName(t *testing.T) {
-	GetPidByProcessName("electron")
+	name := GetPidByProcessName("java")
+	fmt.Printf("%+v", name)
+}
+
+func TestProcessIsRunningByPid(t *testing.T) {
+	pid := ProcessIsRunningByPid("35183")
+	fmt.Println(pid)
 }
