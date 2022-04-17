@@ -13,8 +13,8 @@ import (
 func GitCommitWatcher() {
 	// 获取当前 分支的 head 信息文件
 	getwd, _ := os.Getwd()
-	headPath := getwd + "/test"
-	//headPath := getwd + "/.git/logs/refs/heads/" + Args.Branch
+	//headPath := getwd + "/test"
+	headPath := getwd + "/.git/logs/refs/heads/" + Args.Branch
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -30,7 +30,7 @@ func GitCommitWatcher() {
 				if !ok {
 					return
 				}
-				zap.S().Infow("event:", event)
+				zap.S().Infof("event:%v \n", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					zap.S().Infof("git commit %s modified\n", Args.Branch)
 					Deploy <- true

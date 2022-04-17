@@ -34,14 +34,19 @@ func Init() {
 	// 如果设置启动部署程序则 拉取最新代码后直接部署
 	if Args.Start {
 		// 自动拉取代码
-		//GitPull()
+		GitPull()
 		zap.S().Infow("开始部署项目")
 		Deploy <- true
 	}
-	// 监听文件是否发生变化
-	//go GitCommitWatcher()
+
+	// 监听目录中文件变动
+	go GitCommitWatcher()
+	if Args.Dir != "" {
+		// 监听文件是否发生变化
+		go FileChangeWatcher()
+	}
 	//定时拉取最新的 Git 提交
-	//go GitPullTimer()
+	go GitPullTimer()
 
 }
 
@@ -68,7 +73,7 @@ func ParseCommandVar() {
 	log.Println(os.Args)
 	// 解析命令行参数写入注册的flag里
 	flag.StringVar(&Args.Branch, "branch", "", "[可选] 指定 Git 仓库分支 默认当前分支")
-	flag.IntVar(&Args.TimeInterval, "interval", 10, "自动监听 Git 仓库时间间隔(秒) 默认为30秒")
+	flag.IntVar(&Args.TimeInterval, "interval", 30, "自动监听 Git 仓库时间间隔(秒) 默认为30秒")
 	flag.BoolVar(&Args.Start, "start", true, "默认启动程序时执行部署")
 	flag.StringVar(&Args.Language, "language", "", "项目部署工具 目前支持 [go|maven|yarn|npm]")
 	flag.StringVar(&Args.LogDir, "log-dir", "logs", "日志存放目录 默认在项目根目录下的 logs")
@@ -120,7 +125,7 @@ func ParseCommandVar() {
 	zap.S().Infof("自动化部署开始，启动参数：%+v \n", Args)
 	if Args.Language == "" {
 		fmt.Println(123123)
-		Fatalf("未指定 Shell %s 脚本或部署工具！")
+		Fatalf("未指定 Shell 脚本或部署工具！")
 	}
 }
 

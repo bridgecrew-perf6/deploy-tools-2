@@ -36,6 +36,7 @@ func DeployProject() {
 					Fatalf("暂时不支持 %s 工具部署，请使用 Shell 脚本启动项目！", Args.Language)
 				}
 			}
+			zap.S().Infow("等待下一次代码变动..")
 		}
 	}
 
