@@ -116,7 +116,7 @@ func ParseCommandVar() {
 
 	// 设置 .pid 文件路径
 	if Args.LogDir != "" {
-		PID_FILE = Args.LogDir + "/" + ".pid"
+		PID_FILE = fmt.Sprintf("%s/.%s-%s", Args.LogDir, Args.ProjectName, PID_FILE)
 	}
 
 	if len(flag.Args()) > 0 {

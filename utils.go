@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"go.uber.org/zap"
 	"io"
@@ -136,4 +137,23 @@ func CheckPidFileIsRunning() bool {
 // Fatalf 封装错误退出
 func Fatalf(msg string, args ...interface{}) {
 	zap.S().Fatalf(msg+"\n --- 程序异常结束 ---", args...)
+}
+
+// ReadPipe 时实读取管道中内容
+func ReadPipe(stdout io.ReadCloser) {
+	tmp := make([]byte, 1024)
+	for {
+		reader := bufio.NewReader(stdout)
+		n, err := reader.Read(tmp)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			zap.S().Warnf("读取管道内容失败 err:%s", err)
+			continue
+		}
+		if str := string(tmp[:n]); str != "" {
+			zap.S().Infof(str)
+		}
+	}
 }

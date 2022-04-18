@@ -257,26 +257,8 @@ func NodeDeploy(tool string) {
 	if err := installCmd.Start(); err != nil {
 		Fatalf("ERROR --- %s install 执行命令失败：%s", tool, err)
 	}
-	go func() {
-		for {
-			tmp := make([]byte, 1024)
-			_, err := stdout.Read(tmp)
-			zap.S().Infof(string(tmp))
-			if err != nil {
-				break
-			}
-		}
-	}()
-	go func() {
-		for {
-			tmp := make([]byte, 1024)
-			_, err := stderr.Read(tmp)
-			zap.S().Infof(string(tmp))
-			if err != nil {
-				break
-			}
-		}
-	}()
+	go ReadPipe(stdout)
+	go ReadPipe(stderr)
 	installCmd.Wait()
 	zap.S().Infof("install 已完成 %s \n", Args.ProjectDir)
 	// 创建日志目录
@@ -296,26 +278,8 @@ func NodeDeploy(tool string) {
 	if err := startCmd.Start(); err != nil {
 		Fatalf("ERROR --- %s build 打包失败，Error：%s \n", tool, err)
 	}
-	go func() {
-		for {
-			tmp := make([]byte, 1024)
-			_, err := startStd.Read(tmp)
-			zap.S().Infof(string(tmp))
-			if err != nil {
-				break
-			}
-		}
-	}()
-	go func() {
-		for {
-			tmp := make([]byte, 1024)
-			_, err := startStdErr.Read(tmp)
-			zap.S().Infof(string(tmp))
-			if err != nil {
-				break
-			}
-		}
-	}()
+	go ReadPipe(startStd)
+	go ReadPipe(startStdErr)
 	startCmd.Wait()
 	zap.S().Infof("%s run build 打包成功！", tool)
 }

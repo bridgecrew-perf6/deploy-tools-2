@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
@@ -11,7 +10,8 @@ import (
 )
 
 type NotifyFile struct {
-	watch *fsnotify.Watcher
+	watch   *fsnotify.Watcher
+	Exclude map[string]bool
 }
 
 func NewNotifyFile() *NotifyFile {
@@ -19,11 +19,6 @@ func NewNotifyFile() *NotifyFile {
 	if err != nil {
 		Fatalf(err.Error())
 	}
-	return &NotifyFile{watch: watcher}
-}
-
-// WatchPath 递归监听目录或文件
-func (n *NotifyFile) WatchPath(path string) {
 	//排除的目录 true 为排除
 	excludeDir := map[string]bool{
 		".git":         true,
@@ -31,7 +26,15 @@ func (n *NotifyFile) WatchPath(path string) {
 		"logs":         true,
 		"tmp":          true,
 		"node_modules": true,
+		"dist":         true,
+		"target":       true,
 	}
+	return &NotifyFile{watch: watcher, Exclude: excludeDir}
+}
+
+// WatchPath 递归监听目录或文件
+func (n *NotifyFile) WatchPath(path string) {
+
 	// 监控当前传递目录或文件
 	n.watch.Add(path)
 	stat, err := os.Stat(path)
@@ -41,7 +44,7 @@ func (n *NotifyFile) WatchPath(path string) {
 	}
 	// 递归监控目录下的所有子目录
 	if stat.IsDir() {
-		n.AddListDir(path, excludeDir)
+		n.AddListDir(path)
 	}
 	// 通过 walk 遍历所有子目录
 	go n.WatchEvent()
@@ -56,7 +59,7 @@ func (n *NotifyFile) WatchEvent() {
 				return
 			}
 			if event.Op&fsnotify.Write == fsnotify.Write {
-				fmt.Printf("%s 文件发生变动 \n", event.Name)
+				zap.S().Infof("%s 文件发生变动 \n", event.Name)
 				Deploy = true
 			}
 			if event.Op&fsnotify.Create == fsnotify.Create {
@@ -81,7 +84,7 @@ func (n *NotifyFile) WatchEvent() {
 }
 
 // AddListDir 添加监听
-func (n *NotifyFile) AddListDir(path string, exclude map[string]bool) {
+func (n *NotifyFile) AddListDir(path string) {
 	dir, err := ioutil.ReadDir(path)
 	if err != nil {
 		Fatalf("读取目录[%s]失败 err:%s", path, err)
@@ -89,12 +92,12 @@ func (n *NotifyFile) AddListDir(path string, exclude map[string]bool) {
 	for _, f := range dir {
 		if f.IsDir() {
 			filename := ""
-			if path != "./" {
-				filename = path + "/" + f.Name()
-			} else {
+			if path == "./" {
 				filename = f.Name()
+			} else {
+				filename = path + "/" + f.Name()
 			}
-			if ex, ok := exclude[filename]; ok && ex {
+			if ex, ok := n.Exclude[f.Name()]; ok && ex {
 				continue
 			}
 			abs, err := filepath.Abs(filename)
@@ -102,7 +105,7 @@ func (n *NotifyFile) AddListDir(path string, exclude map[string]bool) {
 				return
 			}
 			n.watch.Add(abs)
-			n.AddListDir(filename, exclude)
+			n.AddListDir(filename)
 		}
 	}
 }
