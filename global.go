@@ -2,7 +2,7 @@ package main
 
 type Parameter struct {
 	Branch       string // 分支名称
-	Dir          string // 监听目录
+	ListenerPath string // 监听目录
 	TimeInterval int    // 监听时间间隔
 	Start        bool   // 启动后是否立即部署一次
 	Language     string // 语言
@@ -19,7 +19,7 @@ type Parameter struct {
 
 var (
 	Args   *Parameter
-	Deploy = make(chan bool) // 部署
+	Deploy bool // 是否部署,只有部署成功后才 = false 防止多次部署
 )
 
 var (

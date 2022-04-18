@@ -13,33 +13,36 @@ import (
 // DeployProject 项目部署
 func DeployProject() {
 	for {
-		select {
-		case <-Deploy:
-			// 如果已脚本的方式启动
-			switch Args.Language {
-			case "script":
-				ScriptDeploy()
-			case "go":
-				GoDeploy()
-			case "maven":
-				MavenDeploy()
-			case "npm":
-				NodeDeploy("npm")
-			case "cnpm":
-				NodeDeploy("cnpm")
-			case "yarn":
-				NodeDeploy("yarn")
-			default:
-				if Args.Language == "" {
-					Fatalf("未指定 Shell 脚本或部署工具！")
-				} else {
-					Fatalf("暂时不支持 %s 工具部署，请使用 Shell 脚本启动项目！", Args.Language)
-				}
-			}
-			zap.S().Infow("等待下一次代码变动..")
+		// 如果不需要部署
+		if !Deploy {
+			time.Sleep(1 * time.Second)
+			continue
 		}
+		// 如果已脚本的方式启动
+		switch Args.Language {
+		case "script":
+			ScriptDeploy()
+		case "go":
+			GoDeploy()
+		case "maven":
+			MavenDeploy()
+		case "npm":
+			NodeDeploy("npm")
+		case "cnpm":
+			NodeDeploy("cnpm")
+		case "yarn":
+			NodeDeploy("yarn")
+		default:
+			if Args.Language == "" {
+				Fatalf("未指定 Shell 脚本或部署工具！")
+			} else {
+				Fatalf("暂时不支持 %s 工具部署，请使用 Shell 脚本启动项目！", Args.Language)
+			}
+		}
+		// 本次部署结束
+		Deploy = false
+		zap.S().Infow("等待下一次代码变动..")
 	}
-
 }
 
 // ScriptDeploy 脚本部署

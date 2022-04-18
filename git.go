@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"
 	"os"
 	"os/exec"
@@ -15,40 +14,15 @@ func GitCommitWatcher() {
 	getwd, _ := os.Getwd()
 	//headPath := getwd + "/test"
 	headPath := getwd + "/.git/logs/refs/heads/" + Args.Branch
-
-	watcher, err := fsnotify.NewWatcher()
+	_, err := os.Stat(headPath)
 	if err != nil {
-		Fatalf(err.Error())
-	}
-	defer watcher.Close()
-
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				zap.S().Infof("event:%v \n", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					zap.S().Infof("git commit %s modified\n", Args.Branch)
-					Deploy <- true
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				zap.S().Infow("error:", err)
-			}
+		zap.S().Errorf("%s 分支不存在或者不是 git 项目！请检查！", Args.Branch)
+		// 不是 git 项目也没设置监听路径时
+		if Args.ListenerPath == "" {
+			Fatalf("什么也没做，请检查是否是 git 项目或设置监听路径！")
 		}
-	}()
-
-	err = watcher.Add(headPath)
-	if err != nil {
-		Fatalf(err.Error())
 	}
-	<-done
+	NewNotifyFile().WatchPath(headPath)
 }
 
 // GitPullTimer 定时拉取代码

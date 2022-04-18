@@ -10,7 +10,7 @@ func TestGetPidByProcessName(t *testing.T) {
 	fmt.Printf("%+v", name)
 }
 
-func TestProcessIsRunningByPid(t *testing.T) {
-	pid := ProcessIsRunningByPid("35183")
-	fmt.Println(pid)
-}
+//func TestProcessIsRunningByPid(t *testing.T) {
+//	pid := ProcessIsRunningByPid()
+//	fmt.Println(pid)
+//}

@@ -36,14 +36,14 @@ func Init() {
 		// 自动拉取代码
 		GitPull()
 		zap.S().Infow("开始部署项目")
-		Deploy <- true
+		Deploy = true
 	}
 
-	// 监听目录中文件变动
+	// 监听 git 提交
 	go GitCommitWatcher()
-	if Args.Dir != "" {
+	if Args.ListenerPath != "" {
 		// 监听文件是否发生变化
-		go FileChangeWatcher()
+		go NewNotifyFile().WatchPath(Args.ListenerPath)
 	}
 	//定时拉取最新的 Git 提交
 	go GitPullTimer()
@@ -78,7 +78,7 @@ func ParseCommandVar() {
 	flag.StringVar(&Args.Language, "language", "", "项目部署工具 目前支持 [go|maven|yarn|npm]")
 	flag.StringVar(&Args.LogDir, "log-dir", "logs", "日志存放目录 默认在项目根目录下的 logs")
 	flag.BoolVar(&Args.FileLog, "file-log", false, "将本程序运行日志保存在日志文件中")
-	flag.StringVar(&Args.Dir, "dir", "", "监听目录变动，文件发生变动时执行部署脚本")
+	flag.StringVar(&Args.ListenerPath, "dir", "", "监听目录变动，文件发生变动时执行部署脚本")
 	flag.BoolVar(&Args.Help, "help", false, "查看帮助")
 	flag.BoolVar(&Args.Help, "h", false, "查看帮助")
 	flag.BoolVar(&Args.Background, "d", false, "后台启动")

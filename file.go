@@ -1,49 +1,108 @@
 package main
 
 import (
+	"fmt"
 	"go.uber.org/zap"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-// FileChangeWatcher 监听文件目录变动
-func FileChangeWatcher() {
-	// 获取当前 分支的 head 信息文件
-	getwd, _ := os.Getwd()
-	path := getwd + "/" + Args.Dir
+type NotifyFile struct {
+	watch *fsnotify.Watcher
+}
 
+func NewNotifyFile() *NotifyFile {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		Fatalf(err.Error())
 	}
-	defer watcher.Close()
+	return &NotifyFile{watch: watcher}
+}
 
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				zap.S().Infof("event:%v \n", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					zap.S().Infof("%s 文件发生变动 \n", Args.Dir)
-					Deploy <- true
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				zap.S().Infow("error:", err)
-			}
-		}
-	}()
-
-	err = watcher.Add(path)
-	if err != nil {
-		Fatalf(err.Error())
+// WatchPath 递归监听目录或文件
+func (n *NotifyFile) WatchPath(path string) {
+	//排除的目录 true 为排除
+	excludeDir := map[string]bool{
+		".git":         true,
+		".idea":        true,
+		"logs":         true,
+		"tmp":          true,
+		"node_modules": true,
 	}
-	<-done
+	// 监控当前传递目录或文件
+	n.watch.Add(path)
+	stat, err := os.Stat(path)
+	if err != nil {
+		Fatalf("打开路径失败，path:%s  err:%s", path, err)
+		return
+	}
+	// 递归监控目录下的所有子目录
+	if stat.IsDir() {
+		n.AddListDir(path, excludeDir)
+	}
+	// 通过 walk 遍历所有子目录
+	go n.WatchEvent()
+}
+
+// WatchEvent 监听文件目录变动
+func (n *NotifyFile) WatchEvent() {
+	for {
+		select {
+		case event, ok := <-n.watch.Events:
+			if !ok {
+				return
+			}
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				fmt.Printf("%s 文件发生变动 \n", event.Name)
+				Deploy = true
+			}
+			if event.Op&fsnotify.Create == fsnotify.Create {
+				stat, err := os.Stat(event.Name)
+				if err == nil && stat.IsDir() {
+					n.watch.Add(event.Name)
+				}
+			}
+			if event.Op&fsnotify.Remove == fsnotify.Remove {
+				stat, err := os.Stat(event.Name)
+				if err == nil && stat.IsDir() {
+					n.watch.Remove(event.Name)
+				}
+			}
+		case err, ok := <-n.watch.Errors:
+			if !ok {
+				return
+			}
+			zap.S().Infow("error:", err)
+		}
+	}
+}
+
+// AddListDir 添加监听
+func (n *NotifyFile) AddListDir(path string, exclude map[string]bool) {
+	dir, err := ioutil.ReadDir(path)
+	if err != nil {
+		Fatalf("读取目录[%s]失败 err:%s", path, err)
+	}
+	for _, f := range dir {
+		if f.IsDir() {
+			filename := ""
+			if path != "./" {
+				filename = path + "/" + f.Name()
+			} else {
+				filename = f.Name()
+			}
+			if ex, ok := exclude[filename]; ok && ex {
+				continue
+			}
+			abs, err := filepath.Abs(filename)
+			if err != nil {
+				return
+			}
+			n.watch.Add(abs)
+			n.AddListDir(filename, exclude)
+		}
+	}
 }
