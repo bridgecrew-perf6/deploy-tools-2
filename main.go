@@ -72,10 +72,10 @@ func ParseCommandVar() {
 	Args = &Parameter{}
 	log.Println(os.Args)
 	// 解析命令行参数写入注册的flag里
-	flag.StringVar(&Args.Branch, "branch", "", "[可选] 指定 Git 仓库分支 默认当前分支")
+	flag.StringVar(&Args.Branch, "branch", "", " 指定 Git 仓库分支 默认当前分支")
 	flag.IntVar(&Args.TimeInterval, "interval", 30, "自动监听 Git 仓库时间间隔(秒) 默认为30秒")
 	flag.BoolVar(&Args.Start, "start", true, "默认启动程序时执行部署")
-	flag.StringVar(&Args.Language, "language", "", "项目部署工具 目前支持 [go|maven|yarn|npm]")
+	flag.StringVar(&Args.Language, "language", "", "项目部署工具 目前支持 [go, maven, yarn, npm] ")
 	flag.StringVar(&Args.LogDir, "log-dir", "logs", "日志存放目录 默认在项目根目录下的 logs")
 	flag.BoolVar(&Args.FileLog, "file-log", false, "将本程序运行日志保存在日志文件中")
 	flag.StringVar(&Args.ListenerPath, "dir", "", "监听目录变动，文件发生变动时执行部署脚本")
