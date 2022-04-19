@@ -98,6 +98,7 @@ func ParseCommandVar() {
 	if Args.Help {
 		_, _ = fmt.Fprintf(os.Stderr, "Usage :\n %s  <shell script path> [...] \n %s -language <then project language> [...]\n", os.Args[0], os.Args[0])
 		flag.PrintDefaults()
+		os.Exit(0)
 	}
 
 	// 获取当前程序执行的目录名称
