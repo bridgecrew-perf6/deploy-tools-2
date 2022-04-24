@@ -28,7 +28,10 @@ func GitCommitWatcher() {
 // GitPullTimer 定时拉取代码
 func GitPullTimer() {
 	for {
-		GitPull()
+		// 不是部署状态下才拉取代码
+		if !Deploy {
+			GitPull()
+		}
 		time.Sleep(time.Duration(Args.TimeInterval) * time.Second)
 	}
 

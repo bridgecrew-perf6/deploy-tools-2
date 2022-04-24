@@ -141,6 +141,7 @@ func Fatalf(msg string, args ...interface{}) {
 
 // ReadPipe 时实读取管道中内容
 func ReadPipe(stdout io.ReadCloser) {
+	defer stdout.Close()
 	tmp := make([]byte, 1024)
 	for {
 		reader := bufio.NewReader(stdout)
@@ -149,7 +150,10 @@ func ReadPipe(stdout io.ReadCloser) {
 			if err == io.EOF {
 				break
 			}
-			zap.S().Warnf("读取管道内容失败 err:%s", err)
+			if n == 0 {
+				break
+			}
+			zap.S().Warnf("读取管道内容失败 n=%d err:%s", n, err)
 			continue
 		}
 		if str := string(tmp[:n]); str != "" {

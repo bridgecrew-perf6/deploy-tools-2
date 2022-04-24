@@ -59,12 +59,8 @@ func ScriptDeploy() {
 		Fatalf("ERROR --- Bash: 执行命令失败：%s", err)
 	}
 	cmd.Start()
-	if str := ConverseStd(stdout); str != "" {
-		zap.S().Infow(str)
-	}
-	if str := ConverseStd(stderr); str != "" {
-		zap.S().Infow(str)
-	}
+	go ReadPipe(stdout)
+	go ReadPipe(stderr)
 	cmd.Wait()
 	zap.S().Infof("Bash: %s 脚本全部执行完成 \n", Args.ProjectName)
 
@@ -198,12 +194,8 @@ func GoDeploy() {
 		Fatalf("ERROR --- Go Build:执行命令失败：%s", err)
 	}
 	cmd.Start()
-	if str := ConverseStd(stdout); str != "" {
-		zap.S().Infow(str)
-	}
-	if str := ConverseStd(stderr); str != "" {
-		zap.S().Infow(str)
-	}
+	go ReadPipe(stdout)
+	go ReadPipe(stderr)
 	cmd.Wait()
 	zap.S().Infof("Go: %s 编译成功 \n", Args.ProjectName)
 

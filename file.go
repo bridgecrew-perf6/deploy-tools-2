@@ -44,9 +44,10 @@ func (n *NotifyFile) WatchPath(path string) {
 	}
 	// 递归监控目录下的所有子目录
 	if stat.IsDir() {
+		zap.S().Warnf("%#v", n.Exclude)
 		n.AddListDir(path)
 	}
-	// 通过 walk 遍历所有子目录
+	// 遍历所有子目录
 	go n.WatchEvent()
 }
 
@@ -65,7 +66,10 @@ func (n *NotifyFile) WatchEvent() {
 			if event.Op&fsnotify.Create == fsnotify.Create {
 				stat, err := os.Stat(event.Name)
 				if err == nil && stat.IsDir() {
-					n.watch.Add(event.Name)
+					// 排除目录
+					if ex, ok := n.Exclude[stat.Name()]; !ok || (ok && !ex) {
+						n.watch.Add(event.Name)
+					}
 				}
 			}
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
